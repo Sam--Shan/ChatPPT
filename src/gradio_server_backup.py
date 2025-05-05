@@ -130,119 +130,55 @@ def handle_generate(history):
 with gr.Blocks(
     title="ChatPPT",
     css="""
-    .container {
-        max-width: 1200px;
-        margin: 0 auto;
-    }
-    .left-panel {
-        padding-right: 20px;
-        border-right: 1px solid #eee;
-    }
-    .right-panel {
-        padding-left: 20px;
-    }
-    .action-btns {
-        margin-top: 20px;
-        gap: 10px;
-    }
+    body { animation: fadeIn 2s; }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
     """
 ) as demo:
 
-    # 布局容器
-    with gr.Row(elem_classes="container"):
-        # 左侧内容生成区
-        with gr.Column(scale=3, elem_classes="left-panel"):
-            gr.Markdown("## 🌟 ChatPPT 智能创作助手")
-            
-            # 聊天历史区域
-            contents_chatbot = gr.Chatbot(
-                placeholder="AI 助手已就绪，请输入PPT主题或上传素材文件...",
-                height=650,
-                show_label=False,
-                bubble_full_width=False
-            )
-            
-            # 输入控制区
-            with gr.Row():
-                text_input = gr.Textbox(
-                    placeholder="输入主题/关键词",
-                    show_label=False,
-                    container=False,
-                    scale=4
-                )
-                
-                file_input = gr.File(
-                    file_count="multiple",
-                    file_types=[
-                        "audio", 
-                        "text", 
-                        "docx", 
-                        "pdf", 
-                        "image"
-                    ],
-                    show_label=False,
-                    scale=3
-                )
-                
-                submit_btn = gr.Button("提交", scale=1)
-            
-            # 操作按钮组
-            with gr.Row(elem_classes="action-btns"):
-                image_generate_btn = gr.Button(
-                    "🎨 智能配图", 
-                    variant="primary"
-                )
-                generate_btn = gr.Button(
-                    "🚀 生成PPT", 
-                    variant="primary"
-                )
+    # 添加标题
+    gr.Markdown("## ChatPPT")
 
-        # 右侧预览区（可扩展功能）
-        with gr.Column(scale=2, elem_classes="right-panel"):
-            gr.Markdown("### PPT预览区")
-            file_output = gr.File(
-                label="生成文档",
-                interactive=False,
-                visible=True
-            )
-            gr.Examples(
-                examples=[config.example_files],
-                inputs=file_input,
-                label="示例文件"
-            )
+    # 定义语音（mic）转文本的接口
+    # gr.Interface(
+    #     fn=transcribe,  # 执行转录的函数
+    #     inputs=[
+    #         gr.Audio(sources="microphone", type="filepath"),  # 使用麦克风录制的音频输入
+    #     ],
+    #     outputs="text",  # 输出为文本
+    #     flagging_mode="never",  # 禁用标记功能
+    # )
 
-    # 事件绑定（保持原有逻辑）
-    submit_event = text_input.submit(
-        fn=generate_contents,
-        inputs={"text": text_input, "files": file_input},
-        outputs=contents_chatbot,
-        queue=True
+    # 创建聊天机器人界面，提示用户输入
+    contents_chatbot = gr.Chatbot(
+        placeholder="<strong>AI 一键生成 PPT</strong><br><br>输入你的主题内容或上传音频文件",
+        height=800,
+        type="messages",
     )
-    file_input.upload(
-        fn=generate_contents,
-        inputs={"text": text_input, "files": file_input},
-        outputs=contents_chatbot,
-        queue=True
+
+    # 定义 ChatBot 和生成内容的接口
+    gr.ChatInterface(
+        fn=generate_contents,  # 处理用户输入的函数
+        chatbot=contents_chatbot,  # 绑定的聊天机器人
+        type="messages",
+        multimodal=True  # 支持多模态输入（文本和文件）
     )
-    submit_btn.click(
-        fn=generate_contents,
-        inputs={"text": text_input, "files": file_input},
-        outputs=contents_chatbot,
-        queue=True
-    )
+
+    image_generate_btn = gr.Button("一键为 PowerPoint 配图")
 
     image_generate_btn.click(
         fn=handle_image_generate,
         inputs=contents_chatbot,
         outputs=contents_chatbot,
-        queue=True
     )
 
+    # 创建生成 PowerPoint 的按钮
+    generate_btn = gr.Button("一键生成 PowerPoint")
+
+    # 监听生成按钮的点击事件
     generate_btn.click(
-        fn=handle_generate,
-        inputs=contents_chatbot,
-        outputs=file_output,
-        queue=True
+        fn=handle_generate,  # 点击时执行的函数
+        inputs=contents_chatbot,  # 输入为聊天记录
+        outputs=gr.File()  # 输出为文件下载链接
     )
 
 # 主程序入口
